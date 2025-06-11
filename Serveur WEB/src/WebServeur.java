@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 
-public class HttpServer {
+public class WebServeur {
     private static final String FICHIER_XML = "XML/conf.xml";
     public static void main(String[] args) {
         int port;
