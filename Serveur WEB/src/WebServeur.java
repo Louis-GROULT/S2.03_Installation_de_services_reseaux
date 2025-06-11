@@ -2,13 +2,16 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.*;
 
-public class HttpServer {
-    private static final String BASE_PATH = "C:\\Users\\groul\\Documents\\01-1er BUT Informatique\\S2\\Services réseaux\\TD - TP\\TP HTTP\\Site_web";
-
+public class WebServeur {
+    private static final String FICHIER_XML = "XML/conf.xml";
     public static void main(String[] args) {
-        int port = 80;
-        if (args.length > 0) {
-            port = Integer.parseInt(args[0]);
+        int port;
+        String nb = XmlValueExtracteur.getTagTextValue(FICHIER_XML, "port");
+        if (!nb.isEmpty()) {
+            port = Integer.parseInt(nb);
+        }
+        else {
+            port = 80;
         }
 
         ServerSocket serverSocket = null;
