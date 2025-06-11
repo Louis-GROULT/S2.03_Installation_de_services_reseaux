@@ -1,3 +1,11 @@
 <webconf>
     <port>8000</port>
+    <DocumentRoot></DocumentRoot>
+    <security>
+        <default></default>
+        <accept></accept>
+        <reject></reject>
+        <accesslog></accesslog>
+        <errorlog></errorlog>
+    </security>
 </webconf>
