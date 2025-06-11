@@ -55,7 +55,7 @@ public class WebServeur {
             String path = parts.length >= 2 ? parts[1] : "/";
             if (path.equals("/")) path = "/index.html";
 
-            File file = new File(BASE_PATH + path);
+            File file = new File(/*BASE_PATH*/ + path);
 
             if (file.exists() && !file.isDirectory()) {
                 byte[] content = Files.readAllBytes(file.toPath());
