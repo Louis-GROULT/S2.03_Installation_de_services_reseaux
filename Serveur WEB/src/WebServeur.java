@@ -3,9 +3,7 @@
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.net.URLEncoder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -13,7 +11,7 @@ import java.time.format.DateTimeFormatter;
 public class WebServeur {
 
     private final WebServeurConfig config; // Instance de la configuration
-    private final DateTimeFormatter LOG_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter LOG_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public WebServeur(WebServeurConfig config) {
         this.config = config;
@@ -39,15 +37,15 @@ public class WebServeur {
                     clientSocket = serverSocket.accept();
                     handleClient(clientSocket);
                 } catch (IOException e) {
-                    System.out.println("Erreur lors du traitement du client : " + e.getMessage());
-                    logError("Erreur lors du traitement du client : " + e.getMessage());
+                    System.out.println("Erreur lors du traitement client : " + e.getMessage());
+                    logErreurs("Erreur lors du traitement client : " + e.getMessage());
                 } finally {
-                    closeSocket(clientSocket);
+                    fermerSocket(clientSocket);
                 }
             }
         } catch (IOException e) {
             System.out.println("Erreur au démarrage du serveur : " + e.getMessage());
-            logError("Erreur au démarrage du serveur : " + e.getMessage());
+            logErreurs("Erreur au démarrage du serveur : " + e.getMessage());
         } finally {
             closeSocket(serverSocket);
         }
@@ -68,11 +66,11 @@ public class WebServeur {
                 return; // Requête vide
             }
 
-            String[] requestParts = requestLine.split(" ");
+            String[] requestParts = requestLine.split("");
             if (requestParts.length < 2) {
-                sendErrorResponse(out, 400, "Bad Request", "Requête mal formée.");
-                logAccess(clientIpAddress, requestedPath, "400 Bad Request");
-                logError("Requête mal formée de l'IP " + clientIpAddress + ": " + requestLine);
+                envoieReponseDErreur(out, 400, "Bad Request", "Requête mal formée.");
+                logAcces(clientIpAddress, requestedPath, "400 Bad Request");
+                logErreurs("Requête mal formée de l'IP " + clientIpAddress + ": " + requestLine);
                 return;
             }
 
@@ -83,10 +81,10 @@ public class WebServeur {
             System.out.println("Requête reçue de " + clientIpAddress + " : " + method + " " + path);
 
             // Vérifier les IPs autorisées/refusées avant de traiter la requête
-            if (!isIpAllowed(clientIpAddress)) {
-                sendErrorResponse(out, 403, "Forbidden", "Accès refusé pour cette adresse IP.");
-                logAccess(clientIpAddress, requestedPath, "403 Forbidden");
-                logError("Accès refusé pour l'IP : " + clientIpAddress + " pour le chemin " + requestedPath);
+            if (!estAutorise(clientIpAddress)) {
+                envoieReponseDErreur(out, 403, "Forbidden", "Accès refusé pour cette adresse IP.");
+                logAcces(clientIpAddress, requestedPath, "403 Forbidden");
+                logErreurs("Accès refusé pour : " + clientIpAddress + " de chemin " + requestedPath);
                 return;
             }
 
@@ -94,22 +92,19 @@ public class WebServeur {
             // Gérer la requête pour /status
             if ("/status".equals(path)) {
                 System.out.println("Requête pour les infos système...");
-                sendSystemInfoPage(out);
-                logAccess(clientIpAddress, requestedPath, "200 OK");
+                envoieInfosSysteme(out);
+                logAcces(clientIpAddress, requestedPath, "200 OK");
                 return;
             }
 
-            // Decode URL-encoded characters (e.g., %20 for space)
             String decodedPath = URLDecoder.decode(path, "UTF-8");
 
-            // Build the full file path, handling potential directory traversal attempts
             Path filePath = Paths.get(config.getDocumentRoot(), decodedPath).normalize();
 
-            // Ensure the path does not go outside the document root
             if (!filePath.startsWith(config.getDocumentRoot())) {
-                sendErrorResponse(out, 403, "Forbidden", "Accès interdit : tentative de traversée de répertoire.");
-                logAccess(clientIpAddress, requestedPath, "403 Forbidden");
-                logError("Tentative de traversée de répertoire : " + decodedPath + " depuis " + clientIpAddress);
+                envoieReponseDErreur(out, 403, "Forbidden", "Accès interdit : tentative de traversée de répertoire.");
+                logAcces(clientIpAddress, requestedPath, "403 Forbidden");
+                logErreurs("Tentative de traversée de répertoire : " + decodedPath + " depuis " + clientIpAddress);
                 return;
             }
 
@@ -121,59 +116,58 @@ public class WebServeur {
                     File indexFile = new File(file, "index.html");
                     if (indexFile.exists() && indexFile.isFile() && indexFile.canRead()) {
                         sendFile(out, indexFile, "text/html");
-                        logAccess(clientIpAddress, requestedPath, "200 OK");
+                        logAcces(clientIpAddress, requestedPath, "200 OK");
                     } else {
-                        // If no index.html, list directory contents
+                        // Si index.html n'existe pas, liste le contenu du répertoire
                         sendDirectoryListing(out, file, path);
-                        logAccess(clientIpAddress, requestedPath, "200 OK");
+                        logAcces(clientIpAddress, requestedPath, "200 OK");
                     }
                 } else {
-                    sendErrorResponse(out, 403, "Forbidden", "L'affichage des répertoires est désactivé.");
-                    logAccess(clientIpAddress, requestedPath, "403 Forbidden");
-                    logError("Affichage de répertoire désactivé pour " + decodedPath + " depuis " + clientIpAddress);
+                    envoieReponseDErreur(out, 403, "Forbidden", "L'affichage des répertoires désactivé.");
+                    logAcces(clientIpAddress, requestedPath, "403 Forbidden");
+                    logErreurs("Affichage de répertoire désactivé pour " + decodedPath + " depuis " + clientIpAddress);
                 }
             } else if (file.exists() && file.isFile() && file.canRead()) {
                 String contentType = getContentType(filePath.toString());
                 sendFile(out, file, contentType);
-                logAccess(clientIpAddress, requestedPath, "200 OK");
+                logAcces(clientIpAddress, requestedPath, "200 OK");
             } else {
-                sendErrorResponse(out, 404, "Not Found", "Le fichier demandé n'existe pas.");
-                logAccess(clientIpAddress, requestedPath, "404 Not Found");
-                logError("Fichier non trouvé : " + decodedPath + " depuis " + clientIpAddress);
+                envoieReponseDErreur(out, 404, "Not Found", "Le fichier n'existe pas.");
+                logAcces(clientIpAddress, requestedPath, "404 Not Found");
+                logErreurs("Fichier non trouvé : " + decodedPath + " depuis " + clientIpAddress);
             }
 
             out.flush();
 
         } catch (IOException e) {
             System.out.println("Erreur pendant le traitement de la requête : " + e.getMessage());
-            logError("Erreur IO pendant le traitement de la requête " + requestedPath + " de " + clientIpAddress + " : " + e.getMessage());
+            logErreurs("Erreur IO pendant le traitement de la requête " + requestedPath + " de " + clientIpAddress + " : " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Erreur inattendue : " + e.getMessage());
-            logError("Erreur inattendue pendant le traitement de la requête " + requestedPath + " de " + clientIpAddress + " : " + e.getMessage());
+            logErreurs("Erreur inattendue pendant le traitement de la requête " + requestedPath + " de " + clientIpAddress + " : " + e.getMessage());
             try {
-                sendErrorResponse(out, 500, "Internal Server Error", "Une erreur interne du serveur s'est produite.");
-                logAccess(clientIpAddress, requestedPath, "500 Internal Server Error");
+                envoieReponseDErreur(out, 500, "Internal Server Error", "Une erreur interne s'est produite.");
+                logAcces(clientIpAddress, requestedPath, "500 Internal Server Error");
             } catch (IOException ioException) {
-                System.out.println("Erreur lors de l'envoi de la réponse d'erreur 500 : " + ioException.getMessage());
+                System.out.println("Erreur lors de l'envoi de la réponse d'erreur : " + ioException.getMessage());
             }
         } finally {
             closeStreams(in, out);
-            closeSocket(socket);
+            fermerSocket(socket);
         }
     }
 
-    // Moved from static to instance method
-    private boolean isIpAllowed(String ipAddress) {
+    private boolean estAutorise(String ip) {
         // Si la liste des IPs autorisées est vide, toutes les IPs sont autorisées (cas par défaut)
         if (config.getAllowedIps().isEmpty()) {
             return true;
         }
         // Si l'IP est dans la liste des IPs refusées, elle est refusée
-        if (config.getDeniedIps().contains(ipAddress)) {
+        if (config.getDeniedIps().contains(ip)) {
             return false;
         }
         // Si l'IP est dans la liste des IPs autorisées, elle est autorisée
-        if (config.getAllowedIps().contains(ipAddress)) {
+        if (config.getAllowedIps().contains(ip)) {
             return true;
         }
         // Si la liste des IPs autorisées n'est pas vide et l'IP n'est pas dedans, elle est refusée
@@ -182,10 +176,10 @@ public class WebServeur {
 
 
     private void sendFile(OutputStream out, File file, String contentType) throws IOException {
-        long fileLength = file.length();
+        long lgFich = file.length();
         String responseHeader = "HTTP/1.1 200 OK\r\n" +
                 "Content-Type: " + contentType + "\r\n" +
-                "Content-Length: " + fileLength + "\r\n" +
+                "Content-Length: " + lgFich + "\r\n" +
                 "Connection: close\r\n\r\n";
         out.write(responseHeader.getBytes());
 
@@ -198,37 +192,36 @@ public class WebServeur {
         }
     }
 
-    private void sendDirectoryListing(OutputStream out, File directory, String requestPath) throws IOException {
+    private void sendDirectoryListing(OutputStream out, File rep, String reqpath) throws IOException {
         StringBuilder htmlContent = new StringBuilder();
         htmlContent.append("<!DOCTYPE html>\n");
-        htmlContent.append("<html><head><title>Index of ").append(requestPath).append("</title>");
+        htmlContent.append("<html><head><title>Index of ").append(reqpath).append("</title>");
         htmlContent.append("<style>");
-        htmlContent.append("body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }");
-        htmlContent.append("h1 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }");
+        htmlContent.append("body { font-family: Arial, sans-serif; margin: 20px; background-color: WHITE; color: PINK; }");
+        htmlContent.append("h1 { color: RED; border-bottom: 2px solid RED; padding-bottom: 10px; }");
         htmlContent.append("ul { list-style-type: none; padding: 0; }");
         htmlContent.append("li { margin-bottom: 5px; }");
-        htmlContent.append("a { color: #0056b3; text-decoration: none; }");
+        htmlContent.append("a { color: RED; text-decoration: none; }");
         htmlContent.append("a:hover { text-decoration: underline; }");
         htmlContent.append("</style>");
         htmlContent.append("</head><body>\n");
-        htmlContent.append("<h1>Index of ").append(requestPath).append("</h1>\n");
+        htmlContent.append("<h1>Index of ").append(reqpath).append("</h1>\n");
         htmlContent.append("<ul>\n");
 
-        // Add parent directory link if not at root
-        if (!"/".equals(requestPath) && !requestPath.isEmpty()) {
-            Path currentPath = Paths.get(requestPath);
+        // Ajoute un lien au répertoire parent s'il n'est pas à la racine
+        if (!"/".equals(reqpath) && !reqpath.isEmpty()) {
+            Path currentPath = Paths.get(reqpath);
             Path parentPath = currentPath.getParent();
             if (parentPath != null) {
                 htmlContent.append("<li><a href=\"").append(URLEncoder.encode(parentPath.toString(), "UTF-8")).append("\">.. (Parent Directory)</a></li>\n");
             } else {
-                // If currentPath is just a filename at root, this handles ".."
                 htmlContent.append("<li><a href=\"/\">.. (Parent Directory)</a></li>\n");
             }
         }
 
-        File[] files = directory.listFiles();
+        File[] files = rep.listFiles();
         if (files != null) {
-            // Sort files and directories alphabetically, directories first
+            // Trie les répertoires et fichiers par ordre alphabétique
             Arrays.sort(files, (f1, f2) -> {
                 if (f1.isDirectory() && !f2.isDirectory()) {
                     return -1;
@@ -240,7 +233,7 @@ public class WebServeur {
 
             for (File item : files) {
                 String itemName = item.getName();
-                String itemPath = requestPath.endsWith("/") ? requestPath + itemName : requestPath + "/" + itemName;
+                String itemPath = reqpath.endsWith("/") ? reqpath + itemName : reqpath + "/" + itemName;
                 if (item.isDirectory()) {
                     htmlContent.append("<li><a href=\"").append(URLEncoder.encode(itemPath, "UTF-8")).append("/\">").append(itemName).append("/</a></li>\n");
                 } else {
@@ -259,9 +252,9 @@ public class WebServeur {
         out.write(response.getBytes());
     }
 
-    private void sendErrorResponse(OutputStream out, int statusCode, String statusMessage, String message) throws IOException {
-        String htmlError = "<!DOCTYPE html><html><head><title>Erreur " + statusCode + "</title></head><body><h1>" + statusCode + " " + statusMessage + "</h1><p>" + message + "</p></body></html>";
-        String responseHeader = "HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n" +
+    private void envoieReponseDErreur(OutputStream out, int code, String statusMessage, String message) throws IOException {
+        String htmlError = "<!DOCTYPE html><html><head><title>Erreur " + code + "</title></head><body><h1>" + code + " " + statusMessage + "</h1><p>" + message + "</p></body></html>";
+        String responseHeader = "HTTP/1.1 " + code + " " + statusMessage + "\r\n" +
                 "Content-Type: text/html\r\n" +
                 "Content-Length: " + htmlError.length() + "\r\n" +
                 "Connection: close\r\n\r\n";
@@ -271,7 +264,7 @@ public class WebServeur {
         out.flush();
     }
 
-    private void sendSystemInfoPage(OutputStream out) throws IOException {
+    private void envoieInfosSysteme(OutputStream out) throws IOException {
         String systemInfoHtml = SystemInfo.getSystemInfoHtml();
         String responseHeader = "HTTP/1.1 200 OK\r\n" +
                 "Content-Type: text/html\r\n" +
@@ -282,44 +275,57 @@ public class WebServeur {
         out.flush();
     }
 
-    private String getContentType(String fileName) {
-        if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+    private String getContentType(String nom) {
+        if (nom.endsWith(".html") || nom.endsWith(".htm")) {
             return "text/html";
-        } else if (fileName.endsWith(".css")) {
+        } else if (nom.endsWith(".css")) {
             return "text/css";
-        } else if (fileName.endsWith(".js")) {
+        } else if (nom.endsWith(".js")) {
             return "application/javascript";
-        } else if (fileName.endsWith(".json")) {
+        } else if (nom.endsWith(".json")) {
             return "application/json";
-        } else if (fileName.endsWith(".png")) {
+        } else if (nom.endsWith(".png")) {
             return "image/png";
-        } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+        } else if (nom.endsWith(".jpg") || nom.endsWith(".jpeg")) {
             return "image/jpeg";
-        } else if (fileName.endsWith(".gif")) {
+        } else if (nom.endsWith(".gif")) {
             return "image/gif";
-        } else if (fileName.endsWith(".ico")) {
+        } else if (nom.endsWith(".ico")) {
             return "image/x-icon";
-        } else if (fileName.endsWith(".pdf")) {
+        } else if (nom.endsWith(".pdf")) {
             return "application/pdf";
-        } else if (fileName.endsWith(".xml")) {
+        } else if (nom.endsWith(".xml")) {
             return "application/xml";
-        } else if (fileName.endsWith(".txt")) {
+        } else if (nom.endsWith(".txt")) {
             return "text/plain";
+        } else if (nom.endsWith(".mp4")) {
+            return "video/mp4";
+        } else if (nom.endsWith(".webm")) {
+            return "video/webm";
+        } else if (nom.endsWith(".ogv")) {
+            return "audio/ogg";
+        } else if (nom.endsWith(".mp3")) {
+            return "audio/mp3";
+        } else if (nom.endsWith(".wav")) {
+            return "audio/wav";
+        } else if (nom.endsWith(".m4a")) {
+            return "audio/mp4";
+        } else if (nom.endsWith(".flac")) {
+            return "audio/flac";
         }
-        // Default content type if unknown
+        // Si le content-type est inconnu
         return "application/octet-stream";
     }
 
     /**
      * Enregistre les accès au serveur dans un fichier de log.
-     * Le format est un exemple simple : [Date Heure] [IP Client] [Méthode] [Chemin] [Statut]
      */
-    private void logAccess(String clientIp, String requestedPath, String status) {
+    private void logAcces(String clientIp, String requestedPath, String status) {
         if (config.getAccessLogPath() == null) {
             return; // Le logging est désactivé
         }
         try {
-            String timestamp = LocalDateTime.now().format(LOG_DATE_FORMATTER);
+            String timestamp = LocalDateTime.now().format(LOG_DATE);
             String logEntry = String.format("[%s] %s \"%s\" %s%n",
                     timestamp,
                     clientIp,
@@ -333,24 +339,23 @@ public class WebServeur {
 
     /**
      * Enregistre les erreurs du serveur dans un fichier de log.
-     * Le format est un exemple simple : [Date Heure] ERROR: [Message d'erreur]
      */
-    private void logError(String errorMessage) {
+    private void logErreurs(String message) {
         if (config.getErrorLogPath() == null) {
             return; // Le logging d'erreur est désactivé si errorLogPath est null
         }
         try {
-            String timestamp = LocalDateTime.now().format(LOG_DATE_FORMATTER);
-            String logEntry = String.format("[%s] ERROR: %s%n",
-                    timestamp,
-                    errorMessage != null ? errorMessage : "NO_ERROR_MESSAGE");
-            Files.write(Paths.get(config.getErrorLogPath()), logEntry.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            String tps = LocalDateTime.now().format(LOG_DATE);
+            String entreeLog = String.format("[%s] ERROR: %s%n",
+                    tps,
+                    message != null ? message : "NO_ERROR_MESSAGE");
+            Files.write(Paths.get(config.getErrorLogPath()), entreeLog.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Erreur lors de l'écriture dans le fichier de log d'erreur " + config.getErrorLogPath() + " : " + e.getMessage());
         }
     }
 
-    private void closeSocket(Socket socket) {
+    private void fermerSocket(Socket socket) {
         if (socket != null && !socket.isClosed()) {
             try {
                 socket.close();
@@ -383,13 +388,13 @@ public class WebServeur {
     }
 
     public static void main(String[] args) {
-        // Charger la configuration une seule fois au début
+        // Charge la configuration au début
         WebServeurConfig config = new WebServeurConfig();
 
-        // Créer une instance du serveur web avec la configuration
+        // Crée un nouveau serveur avec la configuration
         WebServeur server = new WebServeur(config);
 
-        // Démarrer le serveur
+        // Démarre le serveur
         server.start();
     }
 }

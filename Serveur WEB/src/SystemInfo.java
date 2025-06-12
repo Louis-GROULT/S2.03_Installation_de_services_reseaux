@@ -61,9 +61,6 @@ public class SystemInfo {
         html.append("<tr><th>Mémoire JVM Totale (allouée)</th><td>").append(toMegaBytes(Runtime.getRuntime().totalMemory())).append(" MB</td></tr>\n");
         html.append("<tr><th>Mémoire JVM Libre</th><td>").append(toMegaBytes(Runtime.getRuntime().freeMemory())).append(" MB</td></tr>\n");
         html.append("<tr><th>Mémoire JVM Max (disponible)</th><td>").append(toMegaBytes(Runtime.getRuntime().maxMemory())).append(" MB</td></tr>\n");
-        // Les lignes suivantes sont supprimées car elles dépendent de com.sun.management.OperatingSystemMXBean
-        // html.append("<tr><th>Mémoire Physique Totale</th><td>").append(getPhysicalMemory("total")).append(" MB</td></tr>\n");
-        // html.append("<tr><th>Mémoire Physique Libre</th><td>").append(getPhysicalMemory("free")).append(" MB</td></tr>\n");
         html.append("</table></div>\n");
 
         // Informations Disque
@@ -105,12 +102,12 @@ public class SystemInfo {
         long uptimeMillis = runtimeBean.getUptime();
         Duration duration = Duration.ofMillis(uptimeMillis);
 
-        long days = duration.toDays();
-        long hours = duration.toHours() % 24;
+        long jours = duration.toDays();
+        long heures = duration.toHours() % 24;
         long minutes = duration.toMinutes() % 60;
-        long seconds = duration.getSeconds() % 60;
+        long secondes = duration.getSeconds() % 60;
 
-        return String.format("%d jours, %d heures, %d minutes, %d secondes", days, hours, minutes, seconds);
+        return String.format("%d jours, %d heures, %d minutes, %d secondes", jours, heures, minutes, secondes);
     }
 
     private static String getJvmHome() {
@@ -118,13 +115,13 @@ public class SystemInfo {
     }
 
     private static String getSystemLoadAverage() {
-        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        double load = osBean.getSystemLoadAverage();
+        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        double load = os.getSystemLoadAverage();
         if (load >= 0) {
             DecimalFormat df = new DecimalFormat("#.##");
             return df.format(load);
         }
-        return "N/A (Non supporté)";
+        return "Non supporté";
     }
 
     private static long toMegaBytes(long bytes) {
