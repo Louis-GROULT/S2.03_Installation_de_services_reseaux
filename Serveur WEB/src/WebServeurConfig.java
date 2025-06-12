@@ -51,10 +51,10 @@ public class WebServeurConfig {
         }
 
         this.activeConfigFilePath = configFile.getAbsolutePath(); // Chemin du fichier chargé
-        XmlValueExtracteur xmlValueExtracteur = new XmlValueExtracteur(); // Instancier XmlValueExtracteur
+        XmlValueExtracteur XmlValueExtracteur = new XmlValueExtracteur(); // Instancier XmlValueExtracteur
 
         // --- Récupération du port ---
-        String portString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "port");
+        String portString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "port");
         if (!portString.isEmpty()) {
             try {
                 this.port = Integer.parseInt(portString);
@@ -66,7 +66,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération du DocumentRoot ---
-        String documentRootString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DocumentRoot");
+        String documentRootString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DocumentRoot");
         if (!documentRootString.isEmpty()) {
             // Vérifier si le chemin existe et est un répertoire
             File docRootFile = new File(documentRootString);
@@ -80,7 +80,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération du DirectoryListing ---
-        String directoryListingString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Directory");
+        String directoryListingString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Directory");
         if (!directoryListingString.isEmpty()) {
             if (directoryListingString.equalsIgnoreCase("on") || directoryListingString.equalsIgnoreCase("off")) {
                 this.directoryListing = directoryListingString.toLowerCase();
@@ -92,7 +92,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération des IPs autorisées (Allow) ---
-        String allowedIpsString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Allow");
+        String allowedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Allow");
         if (!allowedIpsString.isEmpty()) {
             this.allowedIps.clear(); // Efface les valeurs par défaut avant d'ajouter celles du XML
             String[] ips = allowedIpsString.split(",");
@@ -120,7 +120,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération des IPs refusées (Deny) ---
-        String deniedIpsString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Deny");
+        String deniedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Deny");
         if (!deniedIpsString.isEmpty()) {
             this.deniedIps.clear(); // Efface les valeurs par défaut avant d'ajouter celles du XML
             String[] ips = deniedIpsString.split(",");
@@ -140,7 +140,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération du chemin du log d'accès (AccessLog) ---
-        String accessLogPathString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "AccessLog");
+        String accessLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "AccessLog");
         if (!accessLogPathString.isEmpty()) {
             // Optionnel : vérifier si le répertoire parent existe ou est créable
             File logFile = new File(accessLogPathString);
@@ -159,7 +159,7 @@ public class WebServeurConfig {
         }
 
         // --- Récupération du chemin du log d'erreur (ErrorLog) ---
-        String errorLogPathString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "ErrorLog");
+        String errorLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "ErrorLog");
         if (!errorLogPathString.isEmpty()) {
             // Optionnel : vérifier si le répertoire parent existe ou est créable
             File logFile = new File(errorLogPathString);
