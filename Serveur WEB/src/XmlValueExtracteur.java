@@ -15,6 +15,12 @@ public class XmlValueExtracteur {
     public static String getTagTextValue(String filePath, String tagName) {
         try {
             File xmlFile = new File(filePath);
+            // Vérifier si le fichier existe et est lisible
+            if (!xmlFile.exists() || !xmlFile.isFile() || !xmlFile.canRead()) {
+                System.out.println("Erreur : Le fichier XML de configuration est introuvable ou illisible : " + filePath);
+                return ""; // Retourne une chaîne vide si le fichier n'est pas accessible
+            }
+
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(xmlFile);
@@ -26,7 +32,6 @@ public class XmlValueExtracteur {
                 return node.getTextContent().trim();
             }
         } catch (Exception e) {
-            // Affichage avec System.out.println comme demandé
             System.out.println("Erreur lors de la lecture de la balise <" + tagName + "> dans le fichier " + filePath + " : " + e.getMessage());
         }
         return "";
