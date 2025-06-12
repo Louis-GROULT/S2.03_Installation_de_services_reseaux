@@ -8,14 +8,14 @@ import java.util.List;
 
 public class WebServeurConfig {
 
-    // --- Constantes pour le fichier de configuration et les valeurs par défaut ---\
+    // --- Constantes pour le fichier de configuration et les valeurs par défaut ---
     private static final String CONFIG_FILE_PATH = "XML/conf.xml";
 
     private static final int DEFAULT_PORT = 80;
-    private static final String DEFAULT_DOCUMENT_ROOT = System.getProperty("user.dir"); // Répertoire courant par défaut
+    private static final String DEFAULT_DOCUMENT_ROOT = Paths.get(System.getProperty("user.dir"), "www").toAbsolutePath().toString(); // Default to ./www
     private static final String DEFAULT_DIRECTORY_LISTING_SETTING = "off";
     private static final List<String> DEFAULT_ALLOWED_IPS = Arrays.asList("127.0.0.1", "::1");
-    private static final List<String> DEFAULT_DENIED_IPS = new ArrayList<>();
+    private static final List<String> DEFAULT_DENIED_IPS = new ArrayList<>(); // Par défaut, aucune IP spécifiquement refusée
     private static final String DEFAULT_ACCESS_LOG_PATH = null; // Par défaut, pas de log d'accès
     private static final String DEFAULT_ERROR_LOG_PATH = null;   // Par défaut, pas de log d'erreur
 
@@ -27,7 +27,6 @@ public class WebServeurConfig {
     private List<String> deniedIps;
     private String accessLogPath;
     private String errorLogPath;
-    private String activeConfigFilePath; // Pour indiquer d'où la config a été chargée
 
     public WebServeurConfig() {
         // Initialiser avec les valeurs par défaut
@@ -39,144 +38,138 @@ public class WebServeurConfig {
         this.accessLogPath = DEFAULT_ACCESS_LOG_PATH;
         this.errorLogPath = DEFAULT_ERROR_LOG_PATH;
 
-        loadConfiguration(); // Charger la configuration à partir du fichier XML
+        loadConfiguration(); // Charger la configuration depuis le fichier XML
     }
 
     private void loadConfiguration() {
-        File configFile = new File(CONFIG_FILE_PATH);
-        if (!configFile.exists() || !configFile.isFile()) {
-            System.out.println("Avertissement : Fichier de configuration " + CONFIG_FILE_PATH + " non trouvé ou n'est pas un fichier. Utilisation des valeurs par défaut.");
-            this.activeConfigFilePath = null; // Pas de fichier de configuration externe chargé
-            return; // Utiliser les valeurs par défaut déjà initialisées
-        }
-
-        this.activeConfigFilePath = configFile.getAbsolutePath(); // Chemin du fichier chargé
-        XmlValueExtracteur xmlValueExtracteur = new XmlValueExtracteur(); // Instancier XmlValueExtracteur
-
-        // --- Récupération du port ---
-        String portString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "port");
+        // Charger le port
+        String portString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "port");
         if (!portString.isEmpty()) {
             try {
-                this.port = Integer.parseInt(portString);
+                int parsedPort = Integer.parseInt(portString);
+                if (parsedPort >= 0 && parsedPort <= 65535) { // Valider la plage de ports
+                    this.port = parsedPort;
+                } else {
+                    System.out.println("Avertissement : Le port spécifié dans conf.xml est hors plage valide (0-65535). Utilisation du port par défaut : " + DEFAULT_PORT);
+                    this.port = DEFAULT_PORT;
+                }
             } catch (NumberFormatException e) {
-                System.out.println("Avertissement : La valeur de la balise <port> ('" + portString + "') n'est pas un nombre valide. Utilisation du port par défaut (" + DEFAULT_PORT + ").");
+                System.out.println("Avertissement : Le port spécifié dans conf.xml est invalide. Utilisation du port par défaut : " + DEFAULT_PORT);
+                this.port = DEFAULT_PORT;
             }
         } else {
-            System.out.println("Avertissement : La balise <port> est introuvable ou vide. Utilisation du port par défaut (" + DEFAULT_PORT + ").");
+            System.out.println("Avertissement : La balise <port> est introuvable ou vide dans conf.xml. Utilisation du port par défaut : " + DEFAULT_PORT);
         }
 
-        // --- Récupération du DocumentRoot ---
-        String documentRootString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DocumentRoot");
+        // Charger le DocumentRoot
+        String documentRootString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DocumentRoot");
         if (!documentRootString.isEmpty()) {
-            // Vérifier si le chemin existe et est un répertoire
-            File docRootFile = new File(documentRootString);
-            if (docRootFile.exists() && docRootFile.isDirectory()) {
-                this.documentRoot = documentRootString;
+            File rootDir = new File(documentRootString);
+            if (!rootDir.isAbsolute()) {
+                rootDir = Paths.get(System.getProperty("user.dir"), documentRootString).toFile();
+            }
+
+            if (rootDir.exists() && rootDir.isDirectory() && rootDir.canRead()) {
+                this.documentRoot = rootDir.getAbsolutePath();
             } else {
-                System.out.println("Avertissement : Le DocumentRoot spécifié dans la balise <DocumentRoot> ('" + documentRootString + "') n'existe pas ou n'est pas un répertoire. Utilisation du répertoire courant par défaut (" + DEFAULT_DOCUMENT_ROOT + ").");
+                System.out.println("Avertissement : Le DocumentRoot spécifié dans conf.xml est invalide ou inaccessible : " + documentRootString + ". Utilisation du DocumentRoot par défaut : " + DEFAULT_DOCUMENT_ROOT);
+                this.documentRoot = DEFAULT_DOCUMENT_ROOT;
             }
         } else {
-            System.out.println("Avertissement : La balise <DocumentRoot> est introuvable ou vide. Utilisation du répertoire courant par défaut (" + DEFAULT_DOCUMENT_ROOT + ").");
+            System.out.println("Avertissement : La balise <DocumentRoot> est introuvable ou vide dans conf.xml. Utilisation du DocumentRoot par défaut : " + DEFAULT_DOCUMENT_ROOT);
         }
 
-        // --- Récupération du DirectoryListing ---
-        String directoryListingString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Directory");
+        // Charger DirectoryListing
+        String directoryListingString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DirectoryListing");
         if (!directoryListingString.isEmpty()) {
-            if (directoryListingString.equalsIgnoreCase("on") || directoryListingString.equalsIgnoreCase("off")) {
+            if ("on".equalsIgnoreCase(directoryListingString) || "off".equalsIgnoreCase(directoryListingString)) {
                 this.directoryListing = directoryListingString.toLowerCase();
             } else {
-                System.out.println("Avertissement : La valeur de la balise <Directory> ('" + directoryListingString + "') est invalide. Attendu 'on' ou 'off'. Utilisation de la valeur par défaut (" + DEFAULT_DIRECTORY_LISTING_SETTING + ").");
+                System.out.println("Avertissement : La valeur de <DirectoryListing> est invalide (" + directoryListingString + "). Utilisation de la valeur par défaut : " + DEFAULT_DIRECTORY_LISTING_SETTING);
+                this.directoryListing = DEFAULT_DIRECTORY_LISTING_SETTING;
             }
         } else {
-            System.out.println("Avertissement : La balise <Directory> est introuvable ou vide. Utilisation de la valeur par défaut (" + DEFAULT_DIRECTORY_LISTING_SETTING + ").");
+            System.out.println("Avertissement : La balise <DirectoryListing> est introuvable ou vide. Utilisation de la valeur par défaut : " + DEFAULT_DIRECTORY_LISTING_SETTING);
         }
 
-        // --- Récupération des IPs autorisées (Allow) ---
-        String allowedIpsString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Allow");
+        // Charger les IPs autorisées
+        String allowedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Allow");
+        this.allowedIps.clear(); // Toujours effacer avant de recharger
         if (!allowedIpsString.isEmpty()) {
-            this.allowedIps.clear(); // Efface les valeurs par défaut avant d'ajouter celles du XML
-            String[] ips = allowedIpsString.split(",");
-            boolean ipsFound = false;
-            for (String ip : ips) {
+            for (String ip : allowedIpsString.split(",")) {
                 String trimmedIp = ip.trim();
                 if (!trimmedIp.isEmpty()) {
                     this.allowedIps.add(trimmedIp);
-                    ipsFound = true;
                 }
             }
-            if (!ipsFound) {
-                System.out.println("Avertissement : La balise <Allow> ne contient pas d'IPs valides. Aucune IP ne sera spécifiquement autorisée (toutes non refusées seront implicitement autorisées si Deny est vide).");
-                // Si la balise Allow est présente mais ne contient aucune IP valide,
-                // nous pourrions vouloir revenir au comportement par défaut (toutes IPs autorisées)
-                // ou maintenir une liste vide. Pour l'instant, une liste vide signifie "aucune IP explicitement autorisée".
-                // Les IPs par défaut sont déjà initialisées dans le constructeur, donc si on vide et rien n'est ajouté,
-                // la liste reste vide si le XML ne contient rien de valide.
-                // Ici, on remet les IPs par défaut si Allow est vide ou mal formée:
-                this.allowedIps.addAll(DEFAULT_ALLOWED_IPS); // Retablir les valeurs par défaut
-            }
-        } else {
-            System.out.println("Avertissement : La balise <Allow> est introuvable ou vide. Utilisation des IPs autorisées par défaut (" + DEFAULT_ALLOWED_IPS + ").");
-            // Les IPs par défaut sont déjà là, pas besoin de les rajouter.
+        }
+        if (this.allowedIps.isEmpty()) { // Si la balise était là mais vide/mal formée ou non présente
+            System.out.println("Avertissement : La balise <Allow> est introuvable ou vide/mal formée. Seules les IPs par défaut seront autorisées.");
+            this.allowedIps = new ArrayList<>(DEFAULT_ALLOWED_IPS); // Restaurer les IPs par défaut
         }
 
-        // --- Récupération des IPs refusées (Deny) ---
-        String deniedIpsString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Deny");
+
+        // Charger les IPs refusées
+        String deniedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Deny");
+        this.deniedIps.clear(); // Toujours effacer avant de recharger
         if (!deniedIpsString.isEmpty()) {
-            this.deniedIps.clear(); // Efface les valeurs par défaut avant d'ajouter celles du XML
-            String[] ips = deniedIpsString.split(",");
-            boolean ipsFound = false;
-            for (String ip : ips) {
+            for (String ip : deniedIpsString.split(",")) {
                 String trimmedIp = ip.trim();
                 if (!trimmedIp.isEmpty()) {
                     this.deniedIps.add(trimmedIp);
-                    ipsFound = true;
                 }
-            }
-            if (!ipsFound) {
-                System.out.println("Avertissement : La balise <Deny> ne contient pas d'IPs valides. Aucune IP ne sera spécifiquement refusée.");
             }
         } else {
             System.out.println("Avertissement : La balise <Deny> est introuvable ou vide. Aucune IP ne sera spécifiquement refusée.");
         }
 
-        // --- Récupération du chemin du log d'accès (AccessLog) ---
-        String accessLogPathString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "AccessLog");
+        // Charger le chemin du log d'accès
+        String accessLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "AccessLog");
         if (!accessLogPathString.isEmpty()) {
-            // Optionnel : vérifier si le répertoire parent existe ou est créable
-            File logFile = new File(accessLogPathString);
-            File parentDir = logFile.getParentFile();
-            if (parentDir != null && !parentDir.exists()) {
-                if (parentDir.mkdirs()) {
-                    System.out.println("Répertoire de log d'accès créé : " + parentDir.getAbsolutePath());
-                } else {
-                    System.out.println("Avertissement : Impossible de créer le répertoire pour le log d'accès : " + parentDir.getAbsolutePath() + ". Le log pourrait ne pas fonctionner.");
+            try {
+                File logFile = new File(accessLogPathString);
+                File parentDir = logFile.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (parentDir.mkdirs()) {
+                        System.out.println("Répertoire de log d'accès créé : " + parentDir.getAbsolutePath());
+                    } else {
+                        System.out.println("Avertissement : Impossible de créer le répertoire pour le log d'accès : " + parentDir.getAbsolutePath() + ". Le log pourrait ne pas fonctionner.");
+                    }
                 }
+                this.accessLogPath = accessLogPathString;
+            } catch (SecurityException e) {
+                System.out.println("Erreur de sécurité : Impossible de créer ou d'accéder au chemin du log d'accès : " + accessLogPathString + " : " + e.getMessage());
+                this.accessLogPath = DEFAULT_ACCESS_LOG_PATH;
             }
-            this.accessLogPath = accessLogPathString;
         } else {
             System.out.println("Avertissement : La balise <AccessLog> est introuvable ou vide. Le journal d'accès sera désactivé.");
             this.accessLogPath = DEFAULT_ACCESS_LOG_PATH; // S'assurer qu'il est null si non configuré
         }
 
-        // --- Récupération du chemin du log d'erreur (ErrorLog) ---
-        String errorLogPathString = xmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "ErrorLog");
+        // Charger le chemin du log d'erreur
+        String errorLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "ErrorLog");
         if (!errorLogPathString.isEmpty()) {
-            // Optionnel : vérifier si le répertoire parent existe ou est créable
-            File logFile = new File(errorLogPathString);
-            File parentDir = logFile.getParentFile();
-            if (parentDir != null && !parentDir.exists()) {
-                if (parentDir.mkdirs()) {
-                    System.out.println("Répertoire de log d'erreur créé : " + parentDir.getAbsolutePath());
-                } else {
-                    System.out.println("Avertissement : Impossible de créer le répertoire pour le log d'erreur : " + parentDir.getAbsolutePath() + ". Le log pourrait ne pas fonctionner.");
+            try {
+                File logFile = new File(errorLogPathString);
+                File parentDir = logFile.getParentFile();
+                if (parentDir != null && !parentDir.exists()) {
+                    if (parentDir.mkdirs()) {
+                        System.out.println("Répertoire de log d'erreur créé : " + parentDir.getAbsolutePath());
+                    } else {
+                        System.out.println("Avertissement : Impossible de créer le répertoire pour le log d'erreur : " + parentDir.getAbsolutePath() + ". Le log pourrait ne pas fonctionner.");
+                    }
                 }
+                this.errorLogPath = errorLogPathString;
+            } catch (SecurityException e) {
+                System.out.println("Erreur de sécurité : Impossible de créer ou d'accéder au chemin du log d'erreur : " + errorLogPathString + " : " + e.getMessage());
+                this.errorLogPath = DEFAULT_ERROR_LOG_PATH;
             }
-            this.errorLogPath = errorLogPathString;
         } else {
             System.out.println("Avertissement : La balise <ErrorLog> est introuvable ou vide. Le journal d'erreur sera désactivé.");
             this.errorLogPath = DEFAULT_ERROR_LOG_PATH; // S'assurer qu'il est null si non configuré
         }
     }
+
 
     // --- Getters pour accéder aux valeurs de configuration ---
     public int getPort() { return port; }
@@ -185,13 +178,11 @@ public class WebServeurConfig {
 
     public String getDirectoryListing() { return directoryListing; }
 
-    public List<String> getAllowedIps() { return new ArrayList<>(allowedIps); }
+    public List<String> getAllowedIps() { return new ArrayList<>(allowedIps); } // Retourne une copie pour éviter les modifications externes
 
-    public List<String> getDeniedIps() { return new ArrayList<>(deniedIps); }
+    public List<String> getDeniedIps() { return new ArrayList<>(deniedIps); }   // Retourne une copie
 
     public String getAccessLogPath() { return accessLogPath; }
 
     public String getErrorLogPath() { return errorLogPath; }
-
-    public String getActiveConfigFilePath() { return activeConfigFilePath; }
 }
