@@ -192,10 +192,10 @@ public class WebServeur {
         }
     }
 
-    private void sendDirectoryListing(OutputStream out, File rep, String requestPath) throws IOException {
+    private void sendDirectoryListing(OutputStream out, File rep, String reqpath) throws IOException {
         StringBuilder htmlContent = new StringBuilder();
         htmlContent.append("<!DOCTYPE html>\n");
-        htmlContent.append("<html><head><title>Index of ").append(requestPath).append("</title>");
+        htmlContent.append("<html><head><title>Index of ").append(reqpath).append("</title>");
         htmlContent.append("<style>");
         htmlContent.append("body { font-family: Arial, sans-serif; margin: 20px; background-color: WHITE; color: PINK; }");
         htmlContent.append("h1 { color: RED; border-bottom: 2px solid RED; padding-bottom: 10px; }");
@@ -205,12 +205,12 @@ public class WebServeur {
         htmlContent.append("a:hover { text-decoration: underline; }");
         htmlContent.append("</style>");
         htmlContent.append("</head><body>\n");
-        htmlContent.append("<h1>Index of ").append(requestPath).append("</h1>\n");
+        htmlContent.append("<h1>Index of ").append(reqpath).append("</h1>\n");
         htmlContent.append("<ul>\n");
 
         // Ajoute un lien au répertoire parent s'il n'est pas à la racine
-        if (!"/".equals(requestPath) && !requestPath.isEmpty()) {
-            Path currentPath = Paths.get(requestPath);
+        if (!"/".equals(reqpath) && !reqpath.isEmpty()) {
+            Path currentPath = Paths.get(reqpath);
             Path parentPath = currentPath.getParent();
             if (parentPath != null) {
                 htmlContent.append("<li><a href=\"").append(URLEncoder.encode(parentPath.toString(), "UTF-8")).append("\">.. (Parent Directory)</a></li>\n");
@@ -233,7 +233,7 @@ public class WebServeur {
 
             for (File item : files) {
                 String itemName = item.getName();
-                String itemPath = requestPath.endsWith("/") ? requestPath + itemName : requestPath + "/" + itemName;
+                String itemPath = reqpath.endsWith("/") ? reqpath + itemName : reqpath + "/" + itemName;
                 if (item.isDirectory()) {
                     htmlContent.append("<li><a href=\"").append(URLEncoder.encode(itemPath, "UTF-8")).append("/\">").append(itemName).append("/</a></li>\n");
                 } else {
@@ -252,9 +252,9 @@ public class WebServeur {
         out.write(response.getBytes());
     }
 
-    private void envoieReponseDErreur(OutputStream out, int statusCode, String statusMessage, String message) throws IOException {
-        String htmlError = "<!DOCTYPE html><html><head><title>Erreur " + statusCode + "</title></head><body><h1>" + statusCode + " " + statusMessage + "</h1><p>" + message + "</p></body></html>";
-        String responseHeader = "HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n" +
+    private void envoieReponseDErreur(OutputStream out, int code, String statusMessage, String message) throws IOException {
+        String htmlError = "<!DOCTYPE html><html><head><title>Erreur " + code + "</title></head><body><h1>" + code + " " + statusMessage + "</h1><p>" + message + "</p></body></html>";
+        String responseHeader = "HTTP/1.1 " + code + " " + statusMessage + "\r\n" +
                 "Content-Type: text/html\r\n" +
                 "Content-Length: " + htmlError.length() + "\r\n" +
                 "Connection: close\r\n\r\n";
@@ -275,35 +275,43 @@ public class WebServeur {
         out.flush();
     }
 
-    private String getContentType(String fileName) {
-        if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+    private String getContentType(String nom) {
+        if (nom.endsWith(".html") || nom.endsWith(".htm")) {
             return "text/html";
-        } else if (fileName.endsWith(".css")) {
+        } else if (nom.endsWith(".css")) {
             return "text/css";
-        } else if (fileName.endsWith(".js")) {
+        } else if (nom.endsWith(".js")) {
             return "application/javascript";
-        } else if (fileName.endsWith(".json")) {
+        } else if (nom.endsWith(".json")) {
             return "application/json";
-        } else if (fileName.endsWith(".png")) {
+        } else if (nom.endsWith(".png")) {
             return "image/png";
-        } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+        } else if (nom.endsWith(".jpg") || nom.endsWith(".jpeg")) {
             return "image/jpeg";
-        } else if (fileName.endsWith(".gif")) {
+        } else if (nom.endsWith(".gif")) {
             return "image/gif";
-        } else if (fileName.endsWith(".ico")) {
+        } else if (nom.endsWith(".ico")) {
             return "image/x-icon";
-        } else if (fileName.endsWith(".pdf")) {
+        } else if (nom.endsWith(".pdf")) {
             return "application/pdf";
-        } else if (fileName.endsWith(".xml")) {
+        } else if (nom.endsWith(".xml")) {
             return "application/xml";
-        } else if (fileName.endsWith(".txt")) {
+        } else if (nom.endsWith(".txt")) {
             return "text/plain";
-        } else if (fileName.endsWith(".mp4")) {
+        } else if (nom.endsWith(".mp4")) {
             return "video/mp4";
-        } else if (fileName.endsWith(".webm")) {
+        } else if (nom.endsWith(".webm")) {
             return "video/webm";
-        } else if (fileName.endsWith(".ogg")) {
+        } else if (nom.endsWith(".ogv")) {
             return "audio/ogg";
+        } else if (nom.endsWith(".mp3")) {
+            return "audio/mp3";
+        } else if (nom.endsWith(".wav")) {
+            return "audio/wav";
+        } else if (nom.endsWith(".m4a")) {
+            return "audio/mp4";
+        } else if (nom.endsWith(".flac")) {
+            return "audio/flac";
         }
         // Si le content-type est inconnu
         return "application/octet-stream";
@@ -332,7 +340,7 @@ public class WebServeur {
     /**
      * Enregistre les erreurs du serveur dans un fichier de log.
      */
-    private void logErreurs(String errorMessage) {
+    private void logErreurs(String message) {
         if (config.getErrorLogPath() == null) {
             return; // Le logging d'erreur est désactivé si errorLogPath est null
         }
@@ -340,7 +348,7 @@ public class WebServeur {
             String tps = LocalDateTime.now().format(LOG_DATE);
             String entreeLog = String.format("[%s] ERROR: %s%n",
                     tps,
-                    errorMessage != null ? errorMessage : "NO_ERROR_MESSAGE");
+                    message != null ? message : "NO_ERROR_MESSAGE");
             Files.write(Paths.get(config.getErrorLogPath()), entreeLog.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Erreur lors de l'écriture dans le fichier de log d'erreur " + config.getErrorLogPath() + " : " + e.getMessage());

@@ -161,7 +161,7 @@ public class WebServeurConfig {
                 }
                 this.errorLogPath = errorLogPathString;
             } catch (SecurityException e) {
-                System.out.println("Erreur de sécurité : Impossible de créer ou d'accéder au chemin du log d'erreur : " + errorLogPathString + " : " + e.getMessage());
+                System.out.println("Erreur: Impossible de créer ou d'accéder au chemin du log d'erreur : " + errorLogPathString + " : " + e.getMessage());
                 this.errorLogPath = DEFAULT_ERROR_LOG_PATH;
             }
         } else {
@@ -172,17 +172,31 @@ public class WebServeurConfig {
 
 
     // --- Getters pour accéder aux valeurs de configuration ---
-    public int getPort() { return port; }
+    public int getPort() {
+        return this.port;
+    }
 
-    public String getDocumentRoot() { return documentRoot; }
+    public String getDocumentRoot() {
+        return this.documentRoot;
+    }
 
-    public String getDirectoryListing() { return directoryListing; }
+    public String getDirectoryListing() {
+        return this.directoryListing;
+    }
 
-    public List<String> getAllowedIps() { return new ArrayList<>(allowedIps); } // Retourne une copie pour éviter les modifications externes
+    public List<String> getAllowedIps() {
+        return new ArrayList<>(allowedIps);
+    }
 
-    public List<String> getDeniedIps() { return new ArrayList<>(deniedIps); }   // Retourne une copie
+    public List<String> getDeniedIps() {
+        return new ArrayList<>(deniedIps);
+    }   // Retourne une copie
 
-    public String getAccessLogPath() { return accessLogPath; }
+    public String getAccessLogPath() {
+        return this.accessLogPath;
+    }
 
-    public String getErrorLogPath() { return errorLogPath; }
+    public String getErrorLogPath() {
+        return this.errorLogPath;
+    }
 }
