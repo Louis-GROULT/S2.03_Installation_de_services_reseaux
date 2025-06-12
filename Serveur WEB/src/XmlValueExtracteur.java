@@ -1,3 +1,4 @@
+// XmlValueExtracteur.java
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import org.w3c.dom.*;
@@ -8,8 +9,8 @@ public class XmlValueExtracteur {
      * Méthode pour récupérer le contenu textuel d'une balise XML.
      *
      * @param filePath Chemin du fichier XML
-     * @param tagName  Nom de la balise : exemple : (<p> ou <t>)
-     * @return Texte contenu dans la balise (String)
+     * @param tagName  Nom de la balise
+     * @return Texte contenu dans la balise (String), ou une chaîne vide si non trouvée/erreur.
      */
     public static String getTagTextValue(String filePath, String tagName) {
         try {
@@ -25,9 +26,9 @@ public class XmlValueExtracteur {
                 return node.getTextContent().trim();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // Affichage avec System.out.println comme demandé
+            System.out.println("Erreur lors de la lecture de la balise <" + tagName + "> dans le fichier " + filePath + " : " + e.getMessage());
         }
-
         return "";
     }
 }
