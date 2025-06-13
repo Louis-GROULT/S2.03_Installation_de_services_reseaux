@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saisie Nom et Email</title>
+    <link rel="stylesheet" href="Formulaire.css" />
+</head>
+<body>
+    <h1>Saisie de Nom et Email</h1>
+
+    <form method="post">
+        <p>Pour enregistrer : saisissez Nom et Email. Pour afficher : saisissez seulement le Nom.</p>
+        <div>
+            <label for="name">Nom :</label>
+            <input type="text" id="name" name="user_name" required>
+        </div>
+        <div>
+            <label for="mail">E-mail :</label>
+            <input type="email" id="mail" name="user_mail">
+        </div>
+        <div class="button">
+            <button onclick>Envoyer</button>
+        </div>
+    </form>
+
+    <p style="text-align: center; margin-top: 30px;">
+        <button onclick">Saisir un autre nom (Bouton "Suivant")</button>
+        <button onclick>Retour à la page d'accueil (Bouton "Fini")</button>
+    </p>
+
+</body>
+</html>

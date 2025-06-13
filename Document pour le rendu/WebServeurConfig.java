@@ -9,7 +9,7 @@ import java.util.List;
 
         // --- Constantes pour le fichier de configuration et les valeurs par défaut ---
         // Correction ici : le chemin du fichier de configuration doit être /tmp/etc/myweb/myweb.conf
-        private static final String CONFIG_FILE_PATH = "../XML/conf.xml";
+        private static final String CONFIG_FILE_PATH = "/tmp/etc/myweb/myweb.conf";
 
         private static final int DEFAULT_PORT = 80; // Utilisation du port 80 par défaut comme demandé
         private static final String DEFAULT_DOCUMENT_ROOT = Paths.get(System.getProperty("user.dir")).toAbsolutePath().toString(); // Répertoire racine par défaut selon la SAE
