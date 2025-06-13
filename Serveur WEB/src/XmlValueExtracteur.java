@@ -8,10 +8,10 @@ public class XmlValueExtracteur {
      * Méthode pour récupérer le contenu textuel d'une balise XML.
      *
      * @param chemin Chemin du fichier XML
-     * @param nom  Nom de la balise
+     * @param nomBal  Nom de la balise
      * @return Texte contenu dans la balise (String), ou une chaîne vide si non trouvée/erreur.
      */
-    public static String getTexteXml(String chemin, String nom) {
+    public static String getTexteXml(String chemin, String nomBal) {
         try {
             File xml = new File(chemin);
             // Vérifier si le fichier existe et lisible
@@ -25,13 +25,13 @@ public class XmlValueExtracteur {
             Document doc = builder.parse(xml);
             doc.getDocumentElement().normalize();
 
-            NodeList nodeList = doc.getElementsByTagName(nom);
+            NodeList nodeList = doc.getElementsByTagName(nomBal);
             if (nodeList.getLength() > 0) {
                 Node noeud = nodeList.item(0);
                 return noeud.getTextContent().trim();
             }
         } catch (Exception e) {
-            System.out.println("Erreur lors de la lecture de la balise <" + nom + "> dans le fichier " + chemin + " : " + e.getMessage());
+            System.out.println("Erreur lors de la lecture de la balise <" + nomBal + "> dans le fichier " + chemin + " : " + e.getMessage());
         }
         return "";
     }

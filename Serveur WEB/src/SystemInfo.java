@@ -127,19 +127,19 @@ public class SystemInfo {
     }
 
     // Cette méthode n'est plus nécessaire si com.sun.management.OperatingSystemMXBean est retiré
-    // private static String getPhysicalMemory(String type) {
-    //     OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-    //     if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
-    //         com.sun.management.OperatingSystemMXBean sunOsBean =
-    //                 (com.sun.management.OperatingSystemMXBean) osBean;
-    //         long bytes = 0;
-    //         if ("total".equals(type)) {
-    //             bytes = sunOsBean.getTotalPhysicalMemorySize();
-    //         } else if ("free".equals(type)) {
-    //             bytes = sunOsBean.getFreePhysicalMemorySize();
-    //         }
-    //         return String.valueOf(toMegaBytes(bytes));
-    //     }
-    //     return "N/A (Non supporté par cette JVM)";
-    // }
+     private static String getPhysicalMemory(String type) {
+         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+         if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
+             com.sun.management.OperatingSystemMXBean sunOsBean =
+                     (com.sun.management.OperatingSystemMXBean) osBean;
+             long octets = 0;
+             if ("total".equals(type)) {
+                 octets = sunOsBean.getTotalPhysicalMemorySize();
+             } else if ("free".equals(type)) {
+                 octets = sunOsBean.getFreePhysicalMemorySize();
+             }
+             return String.valueOf(enMegaoctets(octets));
+         }
+         return "N/A (Non supporté par cette JVM)";
+     }
 }
