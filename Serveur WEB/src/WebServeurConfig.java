@@ -43,7 +43,7 @@ public class WebServeurConfig {
 
     private void loadConfiguration() {
         // Charger le port
-        String portString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "port");
+        String portString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "port");
         if (!portString.isEmpty()) {
             try {
                 int parsedPort = Integer.parseInt(portString);
@@ -62,7 +62,7 @@ public class WebServeurConfig {
         }
 
         // Charger le DocumentRoot
-        String documentRootString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DocumentRoot");
+        String documentRootString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "DocumentRoot");
         if (!documentRootString.isEmpty()) {
             File rootDir = new File(documentRootString);
             if (!rootDir.isAbsolute()) {
@@ -80,7 +80,7 @@ public class WebServeurConfig {
         }
 
         // Charger DirectoryListing
-        String directoryListingString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "DirectoryListing");
+        String directoryListingString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "DirectoryListing");
         if (!directoryListingString.isEmpty()) {
             if ("on".equalsIgnoreCase(directoryListingString) || "off".equalsIgnoreCase(directoryListingString)) {
                 this.directoryListing = directoryListingString.toLowerCase();
@@ -93,7 +93,7 @@ public class WebServeurConfig {
         }
 
         // Charger les IPs autorisées
-        String allowedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Allow");
+        String allowedIpsString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "Allow");
         this.allowedIps.clear(); // Toujours effacer avant de recharger
         if (!allowedIpsString.isEmpty()) {
             for (String ip : allowedIpsString.split(",")) {
@@ -110,7 +110,7 @@ public class WebServeurConfig {
 
 
         // Charger les IPs refusées
-        String deniedIpsString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "Deny");
+        String deniedIpsString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "Deny");
         this.deniedIps.clear(); // Toujours effacer avant de recharger
         if (!deniedIpsString.isEmpty()) {
             for (String ip : deniedIpsString.split(",")) {
@@ -124,7 +124,7 @@ public class WebServeurConfig {
         }
 
         // Charger le chemin du log d'accès
-        String accessLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "AccessLog");
+        String accessLogPathString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "AccessLog");
         if (!accessLogPathString.isEmpty()) {
             try {
                 File logFile = new File(accessLogPathString);
@@ -147,7 +147,7 @@ public class WebServeurConfig {
         }
 
         // Charger le chemin du log d'erreur
-        String errorLogPathString = XmlValueExtracteur.getTagTextValue(CONFIG_FILE_PATH, "ErrorLog");
+        String errorLogPathString = XmlValueExtracteur.getTexteXml(CONFIG_FILE_PATH, "ErrorLog");
         if (!errorLogPathString.isEmpty()) {
             try {
                 File logFile = new File(errorLogPathString);
