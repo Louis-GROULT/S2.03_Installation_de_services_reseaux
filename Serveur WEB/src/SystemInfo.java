@@ -1,5 +1,3 @@
-// SystemInfo.java
-
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
@@ -13,16 +11,16 @@ import java.time.format.DateTimeFormatter;
 
 public class SystemInfo {
 
-    private static final long MEGABYTE = 1024L * 1024L;
+    private static final long MO = 1024L * 1024L;
 
     /**
      * Génère une page HTML avec les informations système.
      * @return Une chaîne de caractères contenant le code HTML de la page d'informations système.
      */
-    public static String getSystemInfoHtml() {
+    public static String getInfosSystemeSurHtml() {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n");
-        html.append("<html><head><title>Informations Système</title>");
+        html.append("<html><head><title>Infos Système</title>");
         html.append("<style>");
         html.append("body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }");
         html.append("h1 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }");
@@ -36,7 +34,7 @@ public class SystemInfo {
         html.append("</head><body>\n");
         html.append("<h1>Informations Système du Serveur</h1>\n");
 
-        // Informations Générales
+        // Infos générales
         html.append("<div class='section'><h2>Informations Générales</h2><table>\n");
         html.append("<tr><th>Nom de l'hôte</th><td>").append(getHostName()).append("</td></tr>\n");
         html.append("<tr><th>Adresse IP Locale</th><td>").append(getLocalIpAddress()).append("</td></tr>\n");
@@ -47,7 +45,7 @@ public class SystemInfo {
         html.append("<tr><th>Architecture JVM</th><td>").append(System.getProperty("os.arch")).append("</td></tr>\n");
         html.append("</table></div>\n");
 
-        // Informations OS
+        // Infos OS
         html.append("<div class='section'><h2>Système d'exploitation</h2><table>\n");
         html.append("<tr><th>Nom du Système</th><td>").append(System.getProperty("os.name")).append("</td></tr>\n");
         html.append("<tr><th>Version du Système</th><td>").append(System.getProperty("os.version")).append("</td></tr>\n");
@@ -56,20 +54,20 @@ public class SystemInfo {
         html.append("<tr><th>Charge Système Moyenne (dernière minute)</th><td>").append(getSystemLoadAverage()).append("</td></tr>\n");
         html.append("</table></div>\n");
 
-        // Informations Mémoire (modifiées pour ne pas utiliser com.sun.management)
+        // Informations mémoire
         html.append("<div class='section'><h2>Mémoire JVM</h2><table>\n");
-        html.append("<tr><th>Mémoire JVM Totale (allouée)</th><td>").append(toMegaBytes(Runtime.getRuntime().totalMemory())).append(" MB</td></tr>\n");
-        html.append("<tr><th>Mémoire JVM Libre</th><td>").append(toMegaBytes(Runtime.getRuntime().freeMemory())).append(" MB</td></tr>\n");
-        html.append("<tr><th>Mémoire JVM Max (disponible)</th><td>").append(toMegaBytes(Runtime.getRuntime().maxMemory())).append(" MB</td></tr>\n");
+        html.append("<tr><th>Mémoire JVM Totale (allouée)</th><td>").append(enMegaoctets(Runtime.getRuntime().totalMemory())).append(" MB</td></tr>\n");
+        html.append("<tr><th>Mémoire JVM Libre</th><td>").append(enMegaoctets(Runtime.getRuntime().freeMemory())).append(" MB</td></tr>\n");
+        html.append("<tr><th>Mémoire JVM Max (disponible)</th><td>").append(enMegaoctets(Runtime.getRuntime().maxMemory())).append(" MB</td></tr>\n");
         html.append("</table></div>\n");
 
-        // Informations Disque
+        // Informations disque
         html.append("<div class='section'><h2>Espace Disque</h2><table>\n");
         for (File root : File.listRoots()) {
             html.append("<tr><th colspan='2'>Partition : ").append(root.getAbsolutePath()).append("</th></tr>\n");
-            html.append("<tr><th>Espace Total</th><td>").append(toMegaBytes(root.getTotalSpace())).append(" MB</td></tr>\n");
-            html.append("<tr><th>Espace Libre</th><td>").append(toMegaBytes(root.getFreeSpace())).append(" MB</td></tr>\n");
-            html.append("<tr><th>Espace Utilisable</th><td>").append(toMegaBytes(root.getUsableSpace())).append(" MB</td></tr>\n");
+            html.append("<tr><th>Espace Total</th><td>").append(enMegaoctets(root.getTotalSpace())).append(" MB</td></tr>\n");
+            html.append("<tr><th>Espace Libre</th><td>").append(enMegaoctets(root.getFreeSpace())).append(" MB</td></tr>\n");
+            html.append("<tr><th>Espace Utilisable</th><td>").append(enMegaoctets(root.getUsableSpace())).append(" MB</td></tr>\n");
         }
         html.append("</table></div>\n");
 
@@ -98,9 +96,9 @@ public class SystemInfo {
     }
 
     private static String getJvmUptime() {
-        RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
-        long uptimeMillis = runtimeBean.getUptime();
-        Duration duration = Duration.ofMillis(uptimeMillis);
+        RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
+        long millis = rb.getUptime();
+        Duration duration = Duration.ofMillis(millis);
 
         long jours = duration.toDays();
         long heures = duration.toHours() % 24;
@@ -124,8 +122,8 @@ public class SystemInfo {
         return "Non supporté";
     }
 
-    private static long toMegaBytes(long bytes) {
-        return bytes / MEGABYTE;
+    private static long enMegaoctets(long octets) {
+        return octets / MO;
     }
 
     // Cette méthode n'est plus nécessaire si com.sun.management.OperatingSystemMXBean est retiré

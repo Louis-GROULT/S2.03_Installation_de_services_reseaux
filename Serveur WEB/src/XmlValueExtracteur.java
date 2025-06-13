@@ -13,16 +13,16 @@ public class XmlValueExtracteur {
      */
     public static String getTexteXml(String chemin, String nom) {
         try {
-            File xmlFile = new File(chemin);
+            File xml = new File(chemin);
             // Vérifier si le fichier existe et lisible
-            if (!xmlFile.exists() || !xmlFile.isFile() || !xmlFile.canRead()) {
+            if (!xml.exists() || !xml.isFile() || !xml.canRead()) {
                 System.out.println("Le fichier XML de configuration est introuvable ou illisible : " + chemin);
                 return ""; // Retourne une chaîne vide si le fichier n'est pas accessible
             }
 
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc = builder.parse(xmlFile);
+            Document doc = builder.parse(xml);
             doc.getDocumentElement().normalize();
 
             NodeList nodeList = doc.getElementsByTagName(nom);
